@@ -645,6 +645,10 @@ class GitClient(VcsClientBase):
         result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
         if result:
             return False
+        cmd = "git submodule foreach 'tar -C .. -rvf {0}.tar $path'".format(basepath)
+        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
+        if result:
+            return False
         try:
             # Gzip the tar file
             with open(basepath + '.tar', 'rb') as tar_file:
