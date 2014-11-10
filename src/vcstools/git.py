@@ -60,6 +60,7 @@ from distutils.version import LooseVersion
 from vcstools.vcs_base import VcsClientBase, VcsError
 from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
+from vcstools.git_archive_all import *
 
 class GitError(Exception):
     pass
@@ -640,26 +641,8 @@ class GitClient(VcsClientBase):
         return False
 
     def export_repository(self, version, basepath):
-        # Use the git archive function
-        cmd = "git archive -o {0}.tar {1}".format(basepath, version)
-        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if result:
-            return False
-        cmd = "git submodule foreach 'tar -C .. -rvf {0}.tar $path'".format(basepath)
-        result, _, _ = run_shell_command(cmd, shell=True, cwd=self._path)
-        if result:
-            return False
-        try:
-            # Gzip the tar file
-            with open(basepath + '.tar', 'rb') as tar_file:
-                gzip_file = gzip.open(basepath + '.tar.gz', 'wb')
-                try:
-                    gzip_file.writelines(tar_file)
-                finally:
-                    gzip_file.close()
-        finally:
-            # Clean up
-            os.remove(basepath + '.tar')
+        archiver = GitArchiver(main_repo_abspath=basepath)
+        archiver.create('{0}.tar.gz'.format(basepath))
         return True
 
     def _do_fetch(self, timeout=None):
