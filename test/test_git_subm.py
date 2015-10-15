@@ -149,6 +149,13 @@ class GitClientTest(GitClientTestSetups):
         self.assertTrue(subsubclient.detect_presence())
         self.assertEqual(self.subsubversion_final, subsubclient.get_version())
 
+    def test_export_repository(self):
+        url = self.remote_path
+        submodule = GitClient(self.submodule_path)
+        submodule.export_repository("master", self.submodule_path)
+        subprocess.check_call("mkdir submodule2; tar -C submodule2 -xvzf submodule.tar.gz ", shell=True, cwd=self.root_directory)
+        output = subprocess.check_call("diff -x .git -x .gitmodules -r submodule2 submodule;", shell=True, cwd=self.root_directory)
+
     def test_checkout_branch_with_subs(self):
         url = self.remote_path
         client = GitClient(self.local_path)
