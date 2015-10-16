@@ -16,13 +16,18 @@ On other Systems, use the pypi package::
 
   $ pip install vcstools
 
-Developer Environment
----------------------
-
-source setup.sh to include the src folder in your PYTHONPATH.
-
 Testing
 -------
+
+Prerequisites::
+subversion, bzr, git and hg must be setup already.
+If you are running in a virtual machine, you will need to (taken from .travis.yml):
+
+  $ sudo apt-get install subversion git mercurial bzr
+  $ git config --global user.email "foo@example.com"
+  $ git config --global user.name "Foo Bar"
+  $ echo -e "[ui]\nusername = Your Name <your@mail.com>" >> ~/.hgrc
+  $ bzr whoami "Your Name <name@example.com>"
 
 Use the python library nose to test::
 
@@ -42,4 +47,26 @@ Test Status
 
 .. image:: https://travis-ci.org/vcstools/vcstools.svg?branch=master
     :target: https://travis-ci.org/vcstools/vcstools
+
+Developer Setup
+---------------------
+
+Clone the repository and setup a virtual environment to work (a good habit anyway).
+
+Be aware that your VCS tools from the main system will be used, even if you are working in a virtual environment.
+
+  $ git clone https://github.com/vcstools/vcstools
+  $ sudo apt-get install virtualenvwrapper
+  $ mkvirtualenv vcstools
+  $ pip install -r requirements.txt
+
+Be aware of the Tests Prerequisites ( Hg, SVN, Bzr, and Git must be setup ). Then you can run the tests : 
+
+  $ cd vcstools
+  $ make tests
+
+
+
+
+
 
