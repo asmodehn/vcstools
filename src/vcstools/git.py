@@ -719,7 +719,7 @@ class GitClient(VcsClientBase):
         return False
 
     def export_repository(self, version, basepath):
-        archiver = GitArchiver(main_repo_abspath=basepath)
+        archiver = GitArchiver(version=version, main_repo_abspath=self._path)
         archiver.create('{0}.tar.gz'.format(basepath))
         return True
 

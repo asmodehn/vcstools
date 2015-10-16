@@ -53,7 +53,7 @@ class GitArchiver(object):
     """
     LOG = logging.getLogger('GitArchiver')
 
-    def __init__(self, prefix='', exclude=True, force_sub=False, extra=None, main_repo_abspath=None):
+    def __init__(self, prefix='', version='', exclude=True, force_sub=False, extra=None, main_repo_abspath=None):
         """
         @param prefix: Prefix used to prepend all paths in the resulting archive.
             Extra file paths are only prefixed if they are not relative.
@@ -95,10 +95,13 @@ class GitArchiver(object):
         main_repo_abspath = path.abspath(self.read_git_shell('git rev-parse --show-toplevel', main_repo_abspath).rstrip())
 
         self.prefix = prefix
+        self.version = version
         self.exclude = exclude
         self.extra = extra
         self.force_sub = force_sub
         self.main_repo_abspath = main_repo_abspath
+        if self.version:
+            self.run_shell("git checkout {0}".format(version), self.main_repo_abspath)
 
     def create(self, output_path, dry_run=False, output_format=None):
         """
