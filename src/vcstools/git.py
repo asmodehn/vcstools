@@ -65,6 +65,7 @@ from vcstools.common import sanitized, normalized_rel_path, run_shell_command
 
 from vcstools.git_archive_all import *
 
+
 class GitError(Exception):
     pass
 
