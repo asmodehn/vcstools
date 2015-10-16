@@ -91,7 +91,7 @@ class GitArchiver(object):
         try:
             self.run_shell("[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1", main_repo_abspath)
         except Exception as e:
-            raise ValueError("{path} not a git repository (or any of the parent directories).".format(path=main_repo_abspath))
+            raise ValueError("{} not a git repository (or any of the parent directories).".format(main_repo_abspath))
 
         main_repo_abspath = path.abspath(
             self.read_git_shell('git rev-parse --show-toplevel', main_repo_abspath)
@@ -314,7 +314,9 @@ class GitArchiver(object):
             main_repo_file_path = path.join(repo_path, repo_file_path)  # file path relative to the main repo
 
             # Only list symlinks and files that don't start with git.
-            if file_name.startswith(".git") or (not path.islink(main_repo_file_path) and path.isdir(main_repo_file_path)):
+            if file_name.startswith(".git") or (
+                not path.islink(main_repo_file_path) and path.isdir(main_repo_file_path)
+            ):
                 continue
 
             if self.is_file_excluded(repo_abspath, repo_file_path, exclude_patterns):
@@ -427,7 +429,7 @@ class GitArchiver(object):
         output = output.decode(encoding)
 
         if p.returncode:
-            if sys.version_info > (2,6):
+            if sys.version_info > (2, 6):
                 raise CalledProcessError(returncode=p.returncode, cmd=cmd, output=output)
             else:
                 raise CalledProcessError(returncode=p.returncode, cmd=cmd)
@@ -455,7 +457,7 @@ class GitArchiver(object):
         output = output.decode('unicode_escape').encode('raw_unicode_escape').decode('utf-8')
 
         if p.returncode:
-            if sys.version_info > (2,6):
+            if sys.version_info > (2, 6):
                 raise CalledProcessError(returncode=p.returncode, cmd=cmd, output=output)
             else:
                 raise CalledProcessError(returncode=p.returncode, cmd=cmd)
@@ -466,8 +468,11 @@ class GitArchiver(object):
 if __name__ == '__main__':
     from optparse import OptionParser
 
-    parser = OptionParser(usage="usage: %prog [-v] [--prefix PREFIX] [--no-exclude] [--force-submodules] [--extra EXTRA1 [EXTRA2]] [--dry-run] OUTPUT_FILE",
-                          version="%prog {}".format(__version__))
+    parser = OptionParser(
+        usage="usage: %prog [-v] [--prefix PREFIX] [--no-exclude] [--force-submodules]"
+              "       [--extra EXTRA1 [EXTRA2]] [--dry-run] OUTPUT_FILE",
+        version="%prog {}".format(__version__)
+    )
 
     parser.add_option('--prefix',
                       type='string',
@@ -525,7 +530,11 @@ if __name__ == '__main__':
         import re
 
         output_name = path.basename(output_file_path)
-        output_name = re.sub('(\.zip|\.tar|\.tgz|\.txz|\.gz|\.bz2|\.xz|\.tar\.gz|\.tar\.bz2|\.tar\.xz)$', '', output_name) or "Archive"
+        output_name = re.sub(
+            '(\.zip|\.tar|\.tgz|\.txz|\.gz|\.bz2|\.xz|\.tar\.gz|\.tar\.bz2|\.tar\.xz)$',
+            '',
+            output_name
+        ) or "Archive"
         options.prefix = path.join(output_name, '')
 
     try:
