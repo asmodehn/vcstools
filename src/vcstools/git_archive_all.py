@@ -23,9 +23,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
-# copied from
-# https://github.com/Kentzo/git-archive-all/blob/master/git-archive-all @ 59dddfb96784e393c2c1f2440c7759736998ec64
+# from
+# https://github.com/Kentzo/git-archive-all/blob/master/git-archive-all @ 89b8a8b1d915a6e2319375a5b608b54ac9b33e4a
 
 
 from __future__ import print_function
