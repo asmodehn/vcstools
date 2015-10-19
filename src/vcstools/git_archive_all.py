@@ -91,7 +91,7 @@ class GitArchiver(object):
         try:
             self.run_shell("[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1", main_repo_abspath)
         except Exception as e:
-            raise ValueError("{} not a git repository (or any of the parent directories).".format(main_repo_abspath))
+            raise ValueError("{0} not a git repository (or any of the parent directories).".format(main_repo_abspath))
 
         main_repo_abspath = path.abspath(
             self.read_git_shell('git rev-parse --show-toplevel', main_repo_abspath)
@@ -127,7 +127,7 @@ class GitArchiver(object):
         if output_format is None:
             file_name, file_ext = path.splitext(output_path)
             output_format = file_ext[len(extsep):].lower()
-            self.LOG.debug("Output format is not explicitly set, determined format is {}.".format(output_format))
+            self.LOG.debug("Output format is not explicitly set, determined format is {0}.".format(output_format))
 
         if not dry_run:
             if output_format == 'zip':
@@ -149,17 +149,17 @@ class GitArchiver(object):
                 elif output_format == 'txz':
                     t_mode = 'w:xz'
                 else:
-                    t_mode = 'w:{}'.format(output_format)
+                    t_mode = 'w:{0}'.format(output_format)
 
                 archive = tarfile.open(path.abspath(output_path), t_mode)
 
                 def add_file(file_path, arcname):
                     archive.add(file_path, arcname)
             else:
-                raise RuntimeError("Unknown format: {}".format(output_format))
+                raise RuntimeError("Unknown format: {0}".format(output_format))
 
             def archiver(file_path, arcname):
-                self.LOG.debug("Compressing {} => {}...".format(file_path, arcname))
+                self.LOG.debug("Compressing {0} => {1}...".format(file_path, arcname))
                 add_file(file_path, arcname)
         else:
             archive = None
@@ -262,7 +262,7 @@ class GitArchiver(object):
                 patterns = exclude_patterns[key]
                 for p in patterns:
                     if fnmatch(file_name, p) or fnmatch(repo_file_path, p):
-                        self.LOG.debug("Exclude pattern matched {}: {}".format(p, repo_file_path))
+                        self.LOG.debug("Exclude pattern matched {0}: {1}".format(p, repo_file_path))
                         is_excluded = True
 
             if not len(components):
@@ -366,7 +366,7 @@ class GitArchiver(object):
 
         if not path.commonprefix([repo_abspath, abspath]):
             raise ValueError(
-                "abspath (\"{}\") MUST have common prefix with repo_abspath (\"{}\")"
+                "abspath (\"{0}\") MUST have common prefix with repo_abspath (\"{1}\")"
                 .format(abspath, repo_abspath)
             )
 
@@ -471,7 +471,7 @@ if __name__ == '__main__':
     parser = OptionParser(
         usage="usage: %prog [-v] [--prefix PREFIX] [--no-exclude] [--force-submodules]"
               "       [--extra EXTRA1 [EXTRA2]] [--dry-run] OUTPUT_FILE",
-        version="%prog {}".format(__version__)
+        version="%prog {0}".format(__version__)
     )
 
     parser.add_option('--prefix',
@@ -548,6 +548,6 @@ if __name__ == '__main__':
                                options.extra)
         archiver.create(output_file_path, options.dry_run)
     except Exception as e:
-        parser.exit(2, "{}\n".format(e))
+        parser.exit(2, "{0}\n".format(e))
 
     sys.exit(0)
