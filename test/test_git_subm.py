@@ -38,6 +38,9 @@ import unittest
 import subprocess
 import tempfile
 import shutil
+import tarfile
+import filecmp
+from contextlib import closing
 
 from vcstools.git import GitClient
 
@@ -153,8 +156,18 @@ class GitClientTest(GitClientTestSetups):
         url = self.remote_path
         submodule = GitClient(self.submodule_path)
         submodule.export_repository("master", self.submodule_path)
-        subprocess.check_call("mkdir submodule2; tar -C submodule2 -xvzf submodule.tar.gz ", shell=True, cwd=self.root_directory)
-        output = subprocess.check_call("diff -x .git -x .gitmodules -r submodule2 submodule;", shell=True, cwd=self.root_directory)
+        cwd = os.getcwd()
+        os.chdir(self.root_directory)
+        try:
+            os.mkdir("submodule2")
+            with closing(tarfile.open("submodule.tar.gz", "r:gz")) as tarf:
+                tarf.extractall("submodule2")
+            dirdiff = filecmp.dircmp("submodule2","submodule",ignore=['.git','.gitmodules'])
+            self.assertEqual(dirdiff.left_only,[])
+            self.assertEqual(dirdiff.right_only,[])
+            self.assertEqual(dirdiff.diff_files,[])
+        finally:
+            os.chdir(cwd)
 
     def test_checkout_branch_with_subs(self):
         url = self.remote_path
