@@ -218,8 +218,21 @@ class GitClient(VcsClientBase):
 
     def _update_submodules(self, verbose=False, timeout=None):
 
-        # update and or init submodules too
+        # update and or init submodules too. Also cleanup untracked files & folders
+        # Especially useful when switching branches with submodules.
         if LooseVersion(self.gitversion) > LooseVersion('1.7'):
+            value, untracked, _ = run_shell_command("git ls-files --others",
+                                                    shell=True,
+                                                    cwd=self._path,
+                                                    show_stdout=True)
+
+            if value == 0 and untracked is not "":
+                print ("removing {}".format(untracked))
+                value, _, _ = run_shell_command("rm -r " + untracked,
+                                                shell=True,
+                                                cwd=self._path,
+                                                show_stdout=True)
+
             cmd = "git submodule update --init --recursive"
             value, _, _ = run_shell_command(cmd,
                                             shell=True,
@@ -720,9 +733,10 @@ class GitClient(VcsClientBase):
         return False
 
     def export_repository(self, version, basepath):
-        archiver = GitArchiver(version=version, main_repo_abspath=self._path)
-        archiver.create('{0}.tar.gz'.format(basepath))
-        return True
+        archiver = GitArchiver(treeish=version, main_repo_abspath=self._path, force_sub=True)
+        filepath = '{0}.tar.gz'.format(basepath)
+        archiver.create(filepath)
+        return filepath
 
     def get_branches(self, local_only=False):
         cmd = 'git branch --no-color'
