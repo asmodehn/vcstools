@@ -111,6 +111,11 @@ class GitClientTestSetups(unittest.TestCase):
         # attach submodule somewhere, only in test_branch first
         subprocess.check_call("git checkout master -b test_branch", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule2"), shell=True, cwd=self.remote_path)
+
+        # this is needed only if git <= 1.7, during the time when submodules were being introduced (from 1.5.3)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+
         subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)
@@ -126,6 +131,11 @@ class GitClientTestSetups(unittest.TestCase):
         subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
                               shell=True, cwd=self.remote_path)
+
+        # this is needed only if git <= 1.7, during the time when submodules were being introduced (from 1.5.3)
+        subprocess.check_call("git submodule init", shell=True, cwd=self.remote_path)
+        subprocess.check_call("git submodule update", shell=True, cwd=self.remote_path)
+
         subprocess.check_call("git commit -m submodule", shell=True, cwd=self.remote_path)
 
         po = subprocess.Popen("git log -n 1 --pretty=format:\"%H\"", shell=True, cwd=self.remote_path, stdout=subprocess.PIPE)

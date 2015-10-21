@@ -202,6 +202,18 @@ class GitClient(VcsClientBase):
                 self.logger.error('%s' % msg)
             return False
 
+        # Checking out : the first time, we need to init submodules
+        # this way subsequent updates can deinit properly.
+        cmd = "set -x ; git submodule init"
+        value, _, _ = run_shell_command(cmd,
+                                        shell=True,
+                                        cwd=self._path,
+                                        show_stdout=True,
+                                        timeout=timeout,
+                                        verbose=verbose)
+        if value != 0:
+            return False
+
         try:
             # update to make sure we are on the right branch. Do not
             # check for "master" here, as default branch could be anything
