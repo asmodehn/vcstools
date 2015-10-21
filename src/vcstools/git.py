@@ -248,13 +248,16 @@ class GitClient(VcsClientBase):
                     # Check for local modification with git status
                     # Note : git-submodule.sh deinit code has checks that are not working with git version < 1.8.3
                     cmd = "git status -s"
-                    value, index, _ = run_shell_command(cmd,
-                                                        shell=True,
-                                                        cwd=os.path.join(self._path, subm),
-                                                        show_stdout=True,
-                                                        timeout=timeout,
-                                                        verbose=True)
-                    if value != 0 or index != "":
+                    value, gitindex, _ = run_shell_command(cmd,
+                                                           shell=True,
+                                                           cwd=os.path.join(self._path, subm),
+                                                           show_stdout=True,
+                                                           timeout=timeout,
+                                                           verbose=True)
+                    if value != 0:
+                        raise GitError("Unable to determine the status of Submodule work tree {0}."
+                                       " Deinit cancelled.".format(subm))
+                    if gitindex:  # if we have any output from status
                         raise GitError("Submodule work tree {0} contains local modifications."
                                        " Deinit cancelled.".format(subm))
 
@@ -288,7 +291,7 @@ class GitClient(VcsClientBase):
                                                      show_stdout=True,
                                                      timeout=timeout,
                                                      verbose=verbose)
-                if result != "":
+                if result:
                     cmd = "git config --get-regexp submodule.\"{0}\".url | awk '{{print $2}}'".format(subm)
                     value, url, _ = run_shell_command(cmd,
                                                       shell=True,
@@ -315,9 +318,7 @@ class GitClient(VcsClientBase):
                                             show_stdout=True,
                                             timeout=timeout,
                                             verbose=verbose)
-        if value != 0:
-            return False
-        return True
+        return value == 0
 
     def update(self, version=None, verbose=False, force_fetch=False, timeout=None):
         """
@@ -383,7 +384,8 @@ class GitClient(VcsClientBase):
 
         if update_submodules:
             # we must first deinit submodule to allow changing version without leaving files behind
-            self._deinit_submodules(verbose=verbose, timeout=timeout)
+            if not self._deinit_submodules(verbose=verbose, timeout=timeout):
+                return False  # if any error, we stop the update
 
         default_remote = self._get_default_remote()
         if same_branch:
