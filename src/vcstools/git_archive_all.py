@@ -130,7 +130,7 @@ class GitArchiver(object):
             output_format = file_ext[len(extsep):].lower()
             self.LOG.debug("Output format is not explicitly set, determined format is {0}.".format(output_format))
 
-        def treeish_clean_checkout(treeish, repo_abspath) :
+        def treeish_clean_checkout(treeish, repo_abspath):
             # this will switch branches and clean any changes from index
             self.run_shell("git checkout {0} && git reset --hard {0}".format(treeish), repo_abspath)
             # Also removes untracked files and folders
@@ -188,7 +188,6 @@ class GitArchiver(object):
                 # we need to re update submodules
                 self.run_shell("git submodule init", self.main_repo_abspath)
                 self.run_shell("git submodule update", self.main_repo_abspath)
-
 
     def get_exclude_patterns(self, repo_abspath, repo_file_paths):
         """
