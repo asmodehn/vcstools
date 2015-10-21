@@ -217,31 +217,29 @@ class GitClient(VcsClientBase):
             return False
 
     def _update_submodules(self, verbose=False, timeout=None):
+        # update submodules ( and init if necessary ).
+        cmd = "git submodule update --init --recursive"
+        value, _, _ = run_shell_command(cmd,
+                                        shell=True,
+                                        cwd=self._path,
+                                        show_stdout=True,
+                                        timeout=timeout,
+                                        verbose=verbose)
+        if value != 0:
+            return False
+        return True
 
-        # update and or init submodules too. Also cleanup untracked files & folders
-        # Especially useful when switching branches with submodules.
-        if LooseVersion(self.gitversion) > LooseVersion('1.7'):
-            value, untracked, _ = run_shell_command("git ls-files --others",
-                                                    shell=True,
-                                                    cwd=self._path,
-                                                    show_stdout=True)
-
-            if value == 0 and untracked is not "":
-                print ("removing {}".format(untracked))
-                value, _, _ = run_shell_command("rm -r " + untracked,
-                                                shell=True,
-                                                cwd=self._path,
-                                                show_stdout=True)
-
-            cmd = "git submodule update --init --recursive"
-            value, _, _ = run_shell_command(cmd,
-                                            shell=True,
-                                            cwd=self._path,
-                                            show_stdout=True,
-                                            timeout=timeout,
-                                            verbose=verbose)
-            if value != 0:
-                return False
+    def _deinit_submodules(self, verbose=False, timeout=None):
+        # deinit submodules.
+        cmd = "git submodule deinit ."
+        value, _, _ = run_shell_command(cmd,
+                                        shell=True,
+                                        cwd=self._path,
+                                        show_stdout=True,
+                                        timeout=timeout,
+                                        verbose=verbose)
+        if value != 0:
+            return False
         return True
 
     def update(self, version=None, verbose=False, force_fetch=False, timeout=None):
@@ -305,6 +303,10 @@ class GitClient(VcsClientBase):
             # we are neither tracking, nor did we get any refname to update to
             return (not update_submodules) or self._update_submodules(verbose=verbose,
                                                                       timeout=timeout)
+
+        if update_submodules:
+            # we must first deinit submodule to allow changing version without leaving files behind
+            self._deinit_submodules(verbose=verbose, timeout=timeout)
 
         default_remote = self._get_default_remote()
         if same_branch:
@@ -733,9 +735,12 @@ class GitClient(VcsClientBase):
         return False
 
     def export_repository(self, version, basepath):
-        archiver = GitArchiver(treeish=version, main_repo_abspath=self._path, force_sub=True)
+        current_version = self.get_version()
+        self._do_update(refname=version)
+        archiver = GitArchiver(treeish=None, main_repo_abspath=self._path, force_sub=True)
         filepath = '{0}.tar.gz'.format(basepath)
         archiver.create(filepath)
+        self._do_update(refname=current_version)
         return filepath
 
     def get_branches(self, local_only=False):
