@@ -231,13 +231,90 @@ class GitClient(VcsClientBase):
 
     def _deinit_submodules(self, verbose=False, timeout=None):
         # deinit submodules.
-        cmd = "git submodule deinit ."
-        value, _, _ = run_shell_command(cmd,
-                                        shell=True,
-                                        cwd=self._path,
-                                        show_stdout=True,
-                                        timeout=timeout,
-                                        verbose=verbose)
+
+        if LooseVersion(self.gitversion) < LooseVersion('1.8.3'):
+            # listing submodules
+            cmd = "git submodule status | awk '{print $2}'"
+            value, subm_list, _ = run_shell_command(cmd,
+                                                    shell=True,
+                                                    cwd=self._path,
+                                                    show_stdout=True,
+                                                    timeout=timeout,
+                                                    verbose=verbose)
+
+            for subm in subm_list.splitlines():
+                # remove the submodule work tree ( unless the user already did it )
+                if os.path.exists(os.path.join(self._path, subm)):
+                    # Check for local modification with git status
+                    # Note : git-submodule.sh deinit code has checks that are not working with git version < 1.8.3
+                    cmd = "git status -s"
+                    value, index, _ = run_shell_command(cmd,
+                                                        shell=True,
+                                                        cwd=os.path.join(self._path, subm),
+                                                        show_stdout=True,
+                                                        timeout=timeout,
+                                                        verbose=True)
+                    if value != 0 or index != "":
+                        raise GitError("Submodule work tree {0} contains local modifications."
+                                       " Deinit cancelled.".format(subm))
+
+                    # Remove submodule worktree
+                    cmd = "rm -rf {0}".format(subm)
+                    value, _, _ = run_shell_command(cmd,
+                                                    shell=True,
+                                                    cwd=self._path,
+                                                    show_stdout=True,
+                                                    timeout=timeout,
+                                                    verbose=verbose)
+                    if value != 0:
+                        raise GitError("Could not remove submodule work tree {0}.".format(subm))
+
+                # Recreate empty folder
+                cmd = "mkdir {0}".format(subm)
+                value, _, _ = run_shell_command(cmd,
+                                                shell=True,
+                                                cwd=self._path,
+                                                show_stdout=True,
+                                                timeout=timeout,
+                                                verbose=verbose)
+                if value != 0:
+                    raise GitError("Could not create empty submodule directory {0}.".format(subm))
+
+                # remove the .git/config entries ( unless the user already did it )
+                cmd = "git config --get-regexp submodule.\"{0}\\.\"".format(subm)
+                value, result, _ = run_shell_command(cmd,
+                                                     shell=True,
+                                                     cwd=self._path,
+                                                     show_stdout=True,
+                                                     timeout=timeout,
+                                                     verbose=verbose)
+                if result != "":
+                    cmd = "git config --get-regexp submodule.\"{0}\".url | awk '{{print $2}}'".format(subm)
+                    value, url, _ = run_shell_command(cmd,
+                                                      shell=True,
+                                                      cwd=self._path,
+                                                      show_stdout=True,
+                                                      timeout=timeout,
+                                                      verbose=verbose)
+
+                    cmd = "git config --remove-section submodule.\"{0}\" 2> /dev/null".format(subm)
+                    value, result, _ = run_shell_command(cmd,
+                                                         shell=True,
+                                                         cwd=self._path,
+                                                         show_stdout=True,
+                                                         timeout=timeout,
+                                                         verbose=verbose)
+                    if value == 0:
+                        print("Submodule '{0}' ({1}) unregistered for path '{0}'".format(subm, url))
+
+        else:
+            cmd = "git submodule deinit ."
+            value, _, _ = run_shell_command(cmd,
+                                            shell=True,
+                                            cwd=self._path,
+                                            show_stdout=True,
+                                            timeout=timeout,
+                                            verbose=verbose)
         if value != 0:
             return False
         return True

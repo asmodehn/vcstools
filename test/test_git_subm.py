@@ -41,8 +41,9 @@ import shutil
 import tarfile
 import filecmp
 from contextlib import closing
+from distutils.version import LooseVersion
 
-from vcstools.git import GitClient
+from vcstools.git import GitClient, _get_git_version
 
 
 class GitClientTestSetups(unittest.TestCase):
@@ -116,7 +117,12 @@ class GitClientTestSetups(unittest.TestCase):
         self.version_test = po.stdout.read().decode('UTF-8').rstrip('"').lstrip('"')
 
         # attach submodule to remote on master
-        subprocess.check_call("git submodule deinit .", shell=True, cwd=self.remote_path)
+        if LooseVersion(_get_git_version()) < LooseVersion('1.8.3'):
+            subprocess.check_call("rm -rf submodule2 && mkdir submodule2", shell=True, cwd=self.remote_path)
+            subprocess.check_call("git config --remove-section submodule.submodule2", shell=True, cwd=self.remote_path)
+            print("Submodule 'submodule2' unregistered for path 'submodule2'")
+        else:
+            subprocess.check_call("git submodule deinit .", shell=True, cwd=self.remote_path)
         subprocess.check_call("git checkout master", shell=True, cwd=self.remote_path)
         subprocess.check_call("git submodule add %s %s" % (self.submodule_path, "submodule"),
                               shell=True, cwd=self.remote_path)
@@ -336,6 +342,31 @@ class GitClientTest(GitClientTestSetups):
         self.assertFalse(subsubclient2.path_exists())
         self.assertTrue(subclient.path_exists())
         self.assertTrue(subsubclient.path_exists())
+
+    def test_switch_branches_block_if_modif(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertFalse(subclient2.path_exists())
+        new_version = "test_branch"
+        self.assertTrue(client.update(new_version))
+        # checking that update make submodule disappear properly
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertFalse(subclient.path_exists())
+        self.assertFalse(subsubclient.path_exists())
+        subprocess.check_call("touch submodif.txt", shell=True, cwd=self.sublocal2_path)
+        oldnew_version = "master"
+        self.assertFalse(client.update(oldnew_version))
 
     def test_status(self):
         url = self.remote_path
