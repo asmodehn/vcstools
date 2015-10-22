@@ -378,6 +378,74 @@ class GitClientTest(GitClientTestSetups):
         oldnew_version = "master"
         self.assertFalse(client.update(oldnew_version))
 
+    def test_switch_branches_block_if_submodule_modif_not_in_superrepo(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertFalse(subclient2.path_exists())
+        new_version = "test_branch"
+        self.assertTrue(client.update(new_version))
+        # checking that update make submodule disappear properly
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertFalse(subclient.path_exists())
+        self.assertFalse(subsubclient.path_exists())
+        subprocess.check_call("touch submodif.txt", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git add submodif.txt", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git commit -m submodif", shell=True, cwd=self.sublocal2_path)
+        oldnew_version = "master"
+        self.assertFalse(client.update(oldnew_version))
+
+    def test_switch_branches_retrieve_local_subcommit(self):
+        url = self.remote_path
+        client = GitClient(self.local_path)
+        subclient = GitClient(self.sublocal_path)
+        subclient2 = GitClient(self.sublocal2_path)
+        subsubclient = GitClient(self.subsublocal_path)
+        subsubclient2 = GitClient(self.subsublocal2_path)
+        self.assertFalse(client.path_exists())
+        self.assertFalse(client.detect_presence())
+        self.assertTrue(client.checkout(url))
+        self.assertTrue(client.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertFalse(subclient2.path_exists())
+        new_version = "test_branch"
+        self.assertTrue(client.update(new_version))
+        # checking that update make submodule disappear properly
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertFalse(subclient.path_exists())
+        self.assertFalse(subsubclient.path_exists())
+        subprocess.check_call("touch submodif.txt", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git add submodif.txt", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git commit -m submodif", shell=True, cwd=self.sublocal2_path)
+        subprocess.check_call("git add submodule2", shell=True, cwd=self.local_path)
+        subprocess.check_call("git commit -m submodule2_modif", shell=True, cwd=self.local_path)
+        oldnew_version = "master"
+        self.assertTrue(client.update(oldnew_version))
+        # checking that update make submodule2 disappear properly
+        self.assertFalse(subclient2.path_exists())
+        self.assertFalse(subsubclient2.path_exists())
+        self.assertTrue(subclient.path_exists())
+        self.assertTrue(subsubclient.path_exists())
+        self.assertTrue(client.update(new_version))
+        # checking that update make submodule reappear properly with submodif
+        self.assertTrue(subclient2.path_exists())
+        self.assertTrue(subsubclient2.path_exists())
+        self.assertFalse(subclient.path_exists())
+        self.assertFalse(subsubclient.path_exists())
+        self.assertTrue(os.path.exists(os.path.join(self.sublocal2_path,"submodif.txt")))
+
     def test_status(self):
         url = self.remote_path
         client = GitClient(self.local_path)
