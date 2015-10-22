@@ -230,16 +230,18 @@ class GitClient(VcsClientBase):
             return False
 
     def _update_submodules(self, verbose=False, timeout=None):
+
         # update submodules ( and init if necessary ).
-        cmd = "git submodule update --init --recursive"
-        value, _, _ = run_shell_command(cmd,
-                                        shell=True,
-                                        cwd=self._path,
-                                        show_stdout=True,
-                                        timeout=timeout,
-                                        verbose=verbose)
-        if value != 0:
-            return False
+        if LooseVersion(self.gitversion) > LooseVersion('1.7'):
+            cmd = "git submodule update --init --recursive"
+            value, _, _ = run_shell_command(cmd,
+                                            shell=True,
+                                            cwd=self._path,
+                                            show_stdout=True,
+                                            timeout=timeout,
+                                            verbose=verbose)
+            if value != 0:
+                return False
         return True
 
     def _deinit_submodules(self, verbose=False, timeout=None):
