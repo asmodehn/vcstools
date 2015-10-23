@@ -57,7 +57,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 import os
 import sys
 import shutil
+import tempfile
 import gzip
+from contextlib import closing
 import dateutil.parser  # For parsing date strings
 from distutils.version import LooseVersion
 
@@ -201,18 +203,6 @@ class GitClient(VcsClientBase):
         if value != 0:
             if msg:
                 self.logger.error('%s' % msg)
-            return False
-
-        # Checking out : the first time, we need to init submodules
-        # this way subsequent updates can deinit properly.
-        cmd = "git submodule init"
-        value, _, _ = run_shell_command(cmd,
-                                        shell=True,
-                                        cwd=self._path,
-                                        show_stdout=True,
-                                        timeout=timeout,
-                                        verbose=verbose)
-        if value != 0:
             return False
 
         try:
@@ -391,11 +381,6 @@ class GitClient(VcsClientBase):
             # we are neither tracking, nor did we get any refname to update to
             return (not update_submodules) or self._update_submodules(verbose=verbose,
                                                                       timeout=timeout)
-
-        if update_submodules:
-            # we must first deinit submodule to allow changing version without leaving files behind
-            if not self._deinit_submodules(verbose=verbose, timeout=timeout):
-                return False  # if any error, we stop the update
 
         default_remote = self._get_default_remote()
         if same_branch:
@@ -824,13 +809,26 @@ class GitClient(VcsClientBase):
         return False
 
     def export_repository(self, version, basepath):
-        current_version = self.get_version()
-        self._do_update(refname=version)
-        archiver = GitArchiver(treeish=None, main_repo_abspath=self._path, force_sub=True)
-        filepath = '{0}.tar.gz'.format(basepath)
-        archiver.create(filepath)
-        self._do_update(refname=current_version)
-        return filepath
+        if not self.detect_presence():
+            return False
+
+        try:
+            # since version may relate to remote branch / tag we do not
+            # know about yet, do fetch if not already done
+            self._do_fetch()
+            tmpd_path = tempfile.mkdtemp()
+            tmpgit = GitClient(tmpd_path)
+            if tmpgit.checkout(self._path, version=version):
+                archiver = GitArchiver(treeish=None, main_repo_abspath=tmpgit.get_path(), force_sub=True)
+                filepath = '{0}.tar.gz'.format(basepath)
+                archiver.create(filepath)
+                shutil.rmtree(tmpd_path)
+                return filepath
+            else:
+                shutil.rmtree(tmpd_path)
+                return False
+        except GitError:
+            return False
 
     def get_branches(self, local_only=False):
         cmd = 'git branch --no-color'
