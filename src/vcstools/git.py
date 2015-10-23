@@ -732,7 +732,7 @@ class GitClient(VcsClientBase):
             tmpd_path = tempfile.mkdtemp()
             tmpgit = GitClient(tmpd_path)
             if tmpgit.checkout(self._path, version=version):
-                archiver = GitArchiver(treeish=None, main_repo_abspath=tmpgit.get_path(), force_sub=True)
+                archiver = GitArchiver(main_repo_abspath=tmpgit.get_path(), force_sub=True)
                 filepath = '{0}.tar.gz'.format(basepath)
                 archiver.create(filepath)
                 shutil.rmtree(tmpd_path)

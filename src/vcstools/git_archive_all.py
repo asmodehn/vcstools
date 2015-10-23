@@ -53,7 +53,7 @@ class GitArchiver(object):
     """
     LOG = logging.getLogger('GitArchiver')
 
-    def __init__(self, prefix='', treeish='', exclude=True, force_sub=False, extra=None, main_repo_abspath=None):
+    def __init__(self, prefix='', exclude=True, force_sub=False, extra=None, main_repo_abspath=None):
         """
         @param prefix: Prefix used to prepend all paths in the resulting archive.
             Extra file paths are only prefixed if they are not relative.
@@ -63,9 +63,6 @@ class GitArchiver(object):
               foo/
                 bar
         @type prefix: string
-
-        @param treeish: Determines the tree-ish reference you want to archive
-        @type treeish: string
 
         @param exclude: Determines whether archiver should follow rules specified in .gitattributes files.
         @type exclude:  bool
@@ -101,12 +98,10 @@ class GitArchiver(object):
         )
 
         self.prefix = prefix
-        self.treeish = treeish
         self.exclude = exclude
         self.extra = extra
         self.force_sub = force_sub
         self.main_repo_abspath = main_repo_abspath
-        self.prev_head = self.read_git_shell('git rev-parse HEAD', main_repo_abspath).rstrip()
 
     def create(self, output_path, dry_run=False, output_format=None):
         """
@@ -129,15 +124,6 @@ class GitArchiver(object):
             file_name, file_ext = path.splitext(output_path)
             output_format = file_ext[len(extsep):].lower()
             self.LOG.debug("Output format is not explicitly set, determined format is {0}.".format(output_format))
-
-        def treeish_clean_checkout(treeish, repo_abspath):
-            # this will switch branches and clean any changes from index
-            self.run_shell("git checkout {0} && git reset --hard {0}".format(treeish), repo_abspath)
-            # Also removes untracked files and folders
-            self.run_shell("git ls-files --others | xargs -r rm -r", repo_abspath)
-
-        if self.treeish:
-            treeish_clean_checkout(self.treeish, self.main_repo_abspath)
 
         if not dry_run:
             if output_format == 'zip':
@@ -181,13 +167,6 @@ class GitArchiver(object):
 
         if archive is not None:
             archive.close()
-
-        if self.treeish:
-            treeish_clean_checkout(self.prev_head, self.main_repo_abspath)
-            if self.force_sub:
-                # we need to re update submodules
-                self.run_shell("git submodule init", self.main_repo_abspath)
-                self.run_shell("git submodule update", self.main_repo_abspath)
 
     def get_exclude_patterns(self, repo_abspath, repo_file_paths):
         """
