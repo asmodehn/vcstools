@@ -730,16 +730,18 @@ class GitClient(VcsClientBase):
             # know about yet, do fetch if not already done
             self._do_fetch()
             tmpd_path = tempfile.mkdtemp()
-            tmpgit = GitClient(tmpd_path)
-            if tmpgit.checkout(self._path, version=version):
-                archiver = GitArchiver(main_repo_abspath=tmpgit.get_path(), force_sub=True)
-                filepath = '{0}.tar.gz'.format(basepath)
-                archiver.create(filepath)
+            try:
+                tmpgit = GitClient(tmpd_path)
+                if tmpgit.checkout(self._path, version=version, shallow=True):
+                    archiver = GitArchiver(main_repo_abspath=tmpgit.get_path(), force_sub=True)
+                    filepath = '{0}.tar.gz'.format(basepath)
+                    archiver.create(filepath)
+                    return filepath
+                else:
+                    return False
+            finally:
                 shutil.rmtree(tmpd_path)
-                return filepath
-            else:
-                shutil.rmtree(tmpd_path)
-                return False
+
         except GitError:
             return False
 
